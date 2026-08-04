@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Pad</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .back-link {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    text-decoration: none;
+    color: #444;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    padding: 6px 14px;
+    border-radius: 8px;
+  }
+  .back-link:hover { background: #f5f5f5; }
+
+  .control-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 70px);
+    gap: 20px;
+    justify-items: center;
+    align-items: center;
+    direction: ltr;
+  }
+
+  .btn {
+    width: 100%;
+    height: 100%;
+    border: 2px solid #ccc;
+    border-radius: 12px;
+    background: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    color: #222;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s ease;
+  }
+
+  .btn:hover { background: #f5f5f5; }
+  .btn.stop { border-color: red; }
+
+  .forward  { grid-column: 2; grid-row: 1; }
+  .left     { grid-column: 1; grid-row: 2; }
+  .stop     { grid-column: 2; grid-row: 2; }
+  .right    { grid-column: 3; grid-row: 2; }
+  .backward { grid-column: 2; grid-row: 3; }
+
+  #status {
+    margin-top: 25px;
+    font-size: 16px;
+    color: #444;
+    text-align: center;
+  }
+
+  .mic-btn {
+    margin-top: 30px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: #2dd4bf;
+    color: #0b1220;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.5);
+  }
+
+  .mic-btn:hover { transform: scale(1.05); }
+
+  .mic-btn.listening {
+    background: #f59e0b;
+    animation: pulse 1.4s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+    70% { box-shadow: 0 0 0 18px rgba(245, 158, 11, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  }
+
+  .mic-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+
+
+  <div class="control-pad">
+    <button class="btn forward"  onclick="sendCommand('forward')">forward</button>
+    <button class="btn left"     onclick="sendCommand('left')">left</button>
+    <button class="btn stop"     onclick="sendCommand('stop')">stop</button>
+    <button class="btn right"    onclick="sendCommand('right')">right</button>
+    <button class="btn backward" onclick="sendCommand('backward')">backward</button>
+  </div>
+
+  <div id="status">جاهز</div>
+
+  <button id="micBtn" class="mic-btn" title="تحكم بصوتك">
+    <span id="micIcon">🎤</span>
+  </button>
+  <p class="mic-hint">قل: قدام / خلف / يمين / يسار / قف</p>
+
+  <script>
+    function sendCommand(cmd) {
+      document.getElementById('status').innerText = 'جاري الإرسال...';
+
+      fetch('update_command.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'command=' + encodeURIComponent(cmd)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          document.getElementById('status').innerText =
+            'تم تحديث الجدول: ' + data.button + ' -> "' + data.stored_as + '"';
+        } else {
+          document.getElementById('status').innerText = 'خطأ: ' + data.message;
+        }
+      })
+      .catch(err => {
+        document.getElementById('status').innerText = 'فشل الاتصال بالسيرفر';
+      });
+    }
+
+    // --------------------------------------------------------
+    // التحكم الصوتي
+    // --------------------------------------------------------
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = document.getElementById('micIcon');
+    const statusEl = document.getElementById('status');
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // كلمات عربية وإنجليزية لكل أمر
+    const voiceMap = [
+      { cmd: 'forward',  words: ['قدام', 'قدم', 'امام', 'للأمام', 'لقدام', 'forward'] },
+      { cmd: 'backward', words: ['خلف', 'وراء', 'لخلف', 'رجوع', 'ارجع', 'backward'] },
+      { cmd: 'left',     words: ['يسار', 'شمال', 'لليسار', 'left'] },
+      { cmd: 'right',    words: ['يمين', 'لليمين', 'right'] },
+      { cmd: 'stop',     words: ['قف', 'توقف', 'ستوب', 'وقف', 'stop'] }
+    ];
+
+    function matchCommand(text) {
+      const cleaned = text.trim().toLowerCase();
+      for (const entry of voiceMap) {
+        if (entry.words.some(w => cleaned.includes(w))) {
+          return entry.cmd;
+        }
+      }
+      return null;
+    }
+
+    if (!SpeechRecognitionAPI) {
+      micBtn.disabled = true;
+      micIcon.textContent = '❌';
+    } else {
+      const recognition = new SpeechRecognitionAPI();
+      recognition.lang = 'ar-SA';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      let isListening = false;
+
+      micBtn.addEventListener('click', () => {
+        if (isListening) {
+          recognition.stop();
+          return;
+        }
+        try {
+          recognition.start();
+        } catch (err) {
+          console.error('تعذر بدء الاستماع:', err);
+        }
+      });
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add('listening');
+        statusEl.innerText = 'أستمع... قل الأمر الآن';
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micBtn.classList.remove('listening');
+      };
+
+      recognition.onerror = (event) => {
+        console.error('خطأ في التعرف على الصوت:', event.error);
+        statusEl.innerText = 'لم أستطع سماعك، حاول مرة أخرى';
+      };
+
+      recognition.onresult = (event) => {
+        const said = event.results[0][0].transcript;
+        const cmd = matchCommand(said);
+        if (cmd) {
+          statusEl.innerText = 'سمعت: "' + said + '" -> تنفيذ ' + cmd;
+          sendCommand(cmd);
+        } else {
+          statusEl.innerText = 'لم أفهم الأمر: "' + said + '"';
+        }
+      };
+    }
+  </script>
+
+</body>
+</html>
