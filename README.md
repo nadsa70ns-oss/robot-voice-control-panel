@@ -1,6 +1,6 @@
 # robot-voice-control-panel
 Web-based control panel to drive a robot remotely via buttons or Arabic voice commands, built with PHP + MySQL, hosted free on InfinityFree.
-# Robot Voice & Button Control Panel 🎮🎤
+# Robot Voice & Button Control Panel 🎤
 
 A simple web-based control panel for remotely driving a robot — either by pressing buttons or by giving voice commands in Arabic. Built with PHP and MySQL, and runs for free on InfinityFree hosting.
 
@@ -49,6 +49,4 @@ A simple web-based control panel for remotely driving a robot — either by pres
 
 Speech recognition is currently set to Arabic only (`ar-SA`).
 
-## License
-
-Open source — feel free to use and modify.<img width="1366" height="656" alt="control" src="https://github.com/user-attachments/assets/0401c0d0-6fc0-4e59-9770-99daa2f0d5b3" />
+.<img width="1366" height="656" alt="control" src="https://github.com/user-attachments/assets/0401c0d0-6fc0-4e59-9770-99daa2f0d5b3" />
